@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="#FAFAFA">
+
+    <!-- Status Bar -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Disconnected"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:textColor="#6d4aff"
+        android:layout_marginTop="20dp"/>
+
+    <!-- Input Text Box -->
+    <EditText
+        android:id="@+id/etInput"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:hint="Type here..."
+        android:inputType="textMultiLine"
+        android:gravity="top"
+        android:padding="16dp"
+        android:textSize="18sp"
+        android:background="@android:drawable/edit_text"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Connect Button -->
+    <Button
+        android:id="@+id/btnConnect"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Connect to Receiver"
+        android:textSize="16sp"
+        android:textAllCaps="false"/>
+
+    <!-- Send Button -->
+    <Button
+        android:id="@+id/btnSend"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Send"
+        android:textSize="16sp"
+        android:textAllCaps="false"
+        android:enabled="false"/>
+
+    <!-- Disconnect Button -->
+    <Button
+        android:id="@+id/btnDisconnect"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Disconnect"
+        android:textSize="16sp"
+        android:textAllCaps="false"
+        android:backgroundTint="#FF5722"
+        android:visibility="gone"/>
+
+</LinearLayout>
