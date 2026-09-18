@@ -1,0 +1,132 @@
+name: Android CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Manual trigger
+
+env:
+  JAVA_VERSION: '17'
+  GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-Xmx2g -XX:+HeapDumpOnOutOfMemoryError"'
+  BUILD_TYPE: 'release'
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [debug, release]
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      # Set up JDK
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      # Setup Gradle wrapper (optional - if you don't have gradlew)
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Restore Gradle caches
+      - name: Restore Gradle cache
+        uses: actions/cache@v4
+        id: gradle-cache
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      
+      # Restore dependencies cache
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        id: deps-cache
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.cache
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/build.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      # Initialize Gradle (first-time setup)
+      - name: Init Gradle
+        run: ./gradlew --version
+
+      # Run lint checks
+      - name: Run Lint
+        if: matrix.variant == 'release'
+        run: ./gradlew lint
+
+      # Build APK
+      - name: Build APK (${{ matrix.variant }})
+        run: ./gradlew assemble${{ matrix.variant^c }}
+
+      # Upload APK artifact
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WirelessKeyboard-${{ matrix.variant }}
+          path: app/build/outputs/apk/${{ matrix.variant }}/app-${{ matrix.variant }}.apk
+          retention-days: 30
+          compression-level: 6
+
+      # Upload build reports (for debugging failures)
+      - name: Upload Build Reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-reports-${{ matrix.variant }}
+          path: |
+            app/build/reports/
+            app/build/outputs/logs/
+          retention-days: 7
+
+  publish:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Download release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: WirelessKeyboard-release
+          path: ./apks
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          files: ./apks/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# Cleanup old workflow runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
