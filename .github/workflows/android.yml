@@ -24,9 +24,10 @@ jobs:
 
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
 
       - name: Build APK
-        # Uses 'gradle' directly instead of './gradlew'
         run: gradle assembleRelease
 
       - name: Upload APK
