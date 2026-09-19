@@ -21,15 +21,13 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
-          cache: 'gradle'
 
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: ${{ env.GRADLE_VERSION }}
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v3
 
       - name: Build APK
-        run: ./gradlew assembleRelease
+        # Uses 'gradle' directly instead of './gradlew'
+        run: gradle assembleRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
