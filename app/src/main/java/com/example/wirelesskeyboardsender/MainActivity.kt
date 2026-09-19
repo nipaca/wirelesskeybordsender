@@ -5,7 +5,6 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +19,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnConnect: Button
     private lateinit var btnSend: Button
     private lateinit var btnDisconnect: Button
+    private lateinit var btnClear: Button
+    private lateinit var btnBackspace: Button
+    private lateinit var btnTab: Button
+    private lateinit var btnEnter: Button
+    private lateinit var btnDelete: Button
     
     private val escapeSequence = "<<STOP>>"
     
@@ -30,6 +34,9 @@ class MainActivity : AppCompatActivity() {
         initViews()
         setupListeners()
         networkManager = NetworkManager(this)
+        
+        // Focus on EditText by default
+        etInput.requestFocus()
     }
     
     private fun initViews() {
@@ -38,32 +45,58 @@ class MainActivity : AppCompatActivity() {
         btnConnect = findViewById(R.id.btnConnect)
         btnSend = findViewById(R.id.btnSend)
         btnDisconnect = findViewById(R.id.btnDisconnect)
+        btnClear = findViewById(R.id.btnClear)
+        btnBackspace = findViewById(R.id.btnBackspace)
+        btnTab = findViewById(R.id.btnTab)
+        btnEnter = findViewById(R.id.btnEnter)
+        btnDelete = findViewById(R.id.btnDelete)
     }
     
     private fun setupListeners() {
-        // Connect button - triggers password dialog
+        // Connect button
         btnConnect.setOnClickListener {
             showPasswordDialog()
         }
         
-        // Send button - sends text to receiver
+        // Send button - sends text WITHOUT clearing
         btnSend.setOnClickListener {
             sendText()
         }
         
-        // Disconnect button - closes connection
+        // Disconnect button - moved to top
         btnDisconnect.setOnClickListener {
             disconnect()
         }
         
-        // Allow Enter key to send text (optional convenience)
-        etInput.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEND || actionId == EditorInfo.IME_NULL) {
-                sendText()
-                true
-            } else {
-                false
-            }
+        // Clear button - new
+        btnClear.setOnClickListener {
+            etInput.text.clear()
+            showToast("Text cleared")
+        }
+        
+        // Special key buttons - insert markers
+        btnBackspace.setOnClickListener {
+            val currentText = etInput.text.toString()
+            etInput.setText(currentText + "<<BACKSPACE>>")
+            etInput.setSelection(etInput.text.length)
+        }
+        
+        btnTab.setOnClickListener {
+            val currentText = etInput.text.toString()
+            etInput.setText(currentText + "<<TAB>>")
+            etInput.setSelection(etInput.text.length)
+        }
+        
+        btnEnter.setOnClickListener {
+            val currentText = etInput.text.toString()
+            etInput.setText(currentText + "<<ENTER>>")
+            etInput.setSelection(etInput.text.length)
+        }
+        
+        btnDelete.setOnClickListener {
+            val currentText = etInput.text.toString()
+            etInput.setText(currentText + "<<DELETE>>")
+            etInput.setSelection(etInput.text.length)
         }
     }
     
@@ -106,23 +139,20 @@ class MainActivity : AppCompatActivity() {
     }
     
     private suspend fun connectToDevice(password: String) {
-        // Step 1: Get local IP to ensure WiFi is connected
         updateStatus("Checking network...", "#6d4aff")
         val localIp = networkManager.getLocalIpAddress()
         
         if (localIp == null) {
-            showPopup("Error", "Could not get local IP address.\nMake sure you're connected to WiFi.")
+            Toast.makeText(this, "Could not get IP. Check WiFi.", Toast.LENGTH_SHORT).show()
             updateStatus("Disconnected", "#FF5722")
             return
         }
         
-        // Step 2: Auto-discover receiver via broadcast
         updateStatus("Auto-discovering receiver...", "#6d4aff")
         val receiverIp = networkManager.discoverReceiver()
         
         if (receiverIp.isNullOrEmpty()) {
-            // Auto-discovery failed - offer manual entry
-            showPopup("Not Found", "No receiver detected on network.\nTry entering IP manually.")
+            Toast.makeText(this, "No receiver found", Toast.LENGTH_SHORT).show()
             
             val manualIp = promptManualIp(localIp)
             if (manualIp.isNullOrEmpty()) {
@@ -132,7 +162,6 @@ class MainActivity : AppCompatActivity() {
             
             connectWithIp(manualIp, password)
         } else {
-            // Success! Auto-discovered receiver
             connectWithIp(receiverIp, password)
         }
     }
@@ -145,10 +174,10 @@ class MainActivity : AppCompatActivity() {
         if (success) {
             updateStatus("Connected! ($receiverIp)", "#4CAF50")
             enableSendingMode(true)
-            showPopup("Success", "Connected to receiver at\n$receiverIp\n\nStart typing and press Send!")
+            showToast("Connected successfully!")
         } else {
             updateStatus("Connection Failed", "#FF5722")
-            showPopup("Error", "Failed to connect. Possible reasons:\n• Wrong password\n• Receiver not running\n• Firewall blocking port ${NetworkManager.PORT}")
+            Toast.makeText(this, "Auth failed. Check password.", Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -160,7 +189,6 @@ class MainActivity : AppCompatActivity() {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
             setPadding(40, 20, 40, 0)
             
-            // Suggest prefix from local IP if available
             if (!localIpPrefix.isNullOrEmpty()) {
                 val prefix = localIpPrefix.substringBeforeLast(".")
                 hint = "Suggested: ${prefix}.___"
@@ -169,7 +197,7 @@ class MainActivity : AppCompatActivity() {
         
         val dialog = AlertDialog.Builder(this)
             .setTitle("Enter Receiver IP Manually")
-            .setMessage("Find the IP address displayed in receiver.py terminal\n(e.g., 192.168.1.100)")
+            .setMessage("Find IP from receiver.py terminal")
             .setView(editText)
             .setPositiveButton("OK") { _, _ ->
                 result = editText.text.toString().trim()
@@ -184,7 +212,7 @@ class MainActivity : AppCompatActivity() {
                     result = ip
                     dialog.dismiss()
                 } else {
-                    Toast.makeText(this, "Please enter a valid IP address", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Invalid IP address", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -208,8 +236,7 @@ class MainActivity : AppCompatActivity() {
         // Check for disconnect escape sequence
         if (text.equals(escapeSequence, ignoreCase = true)) {
             disconnect()
-            etInput.setText("")
-            Toast.makeText(this, "Disconnect requested", Toast.LENGTH_SHORT).show()
+            showToast("Disconnect requested")
             return
         }
         
@@ -218,13 +245,13 @@ class MainActivity : AppCompatActivity() {
             val success = networkManager.send(text)
             
             if (success) {
-                showPopup("Sent ✓", "Text sent successfully")
-                etInput.setText("")
+                showToast("✓ Text sent")
                 updateStatus("Connected", "#4CAF50")
+                // DO NOT clear text box - user can edit and resend
             } else {
-                showPopup("Failed", "Failed to send message.\nTrying to reconnect...")
+                Toast.makeText(this@MainActivity, "Send failed! Connection lost.", Toast.LENGTH_LONG).show()
                 updateStatus("Connection Lost", "#FF5722")
-                disconnect()
+                enableSendingMode(false)  // Allow reconnect
             }
         }
     }
@@ -234,25 +261,26 @@ class MainActivity : AppCompatActivity() {
             networkManager.disconnect()
             updateStatus("Disconnected", "#FF5722")
             enableSendingMode(false)
-            showToast("Disconnected from receiver")
+            showToast("Disconnected")
         }
     }
     
     private fun enableSendingMode(enabled: Boolean) {
-    
-    btnConnect.visibility = if (enabled) View.GONE else View.VISIBLE
-    btnSend.visibility = if (enabled) View.VISIBLE else View.GONE
-    btnDisconnect.visibility = if (enabled) View.VISIBLE else View.GONE
-    
-    
-    btnConnect.isEnabled = enabled
-    btnSend.isEnabled = enabled
-    btnDisconnect.isEnabled = enabled
-    etInput.isEnabled = enabled
-    
+        // Show/hide appropriate buttons
+        btnConnect.visibility = if (enabled) View.GONE else View.VISIBLE
+        btnClear.visibility = if (enabled) View.VISIBLE else View.GONE
+        btnDisconnect.visibility = if (enabled) View.VISIBLE else View.GONE
+        btnSend.visibility = if (enabled) View.VISIBLE else View.GONE
+        btnBackspace.visibility = if (enabled) View.VISIBLE else View.GONE
+        btnTab.visibility = if (enabled) View.VISIBLE else View.GONE
+        btnEnter.visibility = if (enabled) View.VISIBLE else View.GONE
+        btnDelete.visibility = if (enabled) View.VISIBLE else View.GONE
+        
+        etInput.isEnabled = enabled
+        
         if (enabled) {
             etInput.requestFocus()
-            val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
             imm.showSoftInput(etInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
         }
     }
@@ -264,21 +292,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun showPopup(title: String, message: String) {
-        runOnUiThread {
-            AlertDialog.Builder(this)
-                .setTitle(title)
-                .setMessage(message)
-                .setPositiveButton("OK") { dialog, _ ->
-                    dialog.dismiss()
-                }
-                .show()
-        }
-    }
-    
     private fun showToast(message: String) {
         runOnUiThread {
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -287,10 +303,10 @@ class MainActivity : AppCompatActivity() {
         networkManager.disconnect()
     }
     
+    // FIX: Don't disconnect when screen goes off!
     override fun onPause() {
         super.onPause()
-        // Optional: Keep connection when app goes to background
-        // Uncomment below to disconnect on background
-        // networkManager.disconnect()
+        // Keep connection alive when app backgrounds or screen locks
+        // Commented out: networkManager.disconnect()
     }
 }
