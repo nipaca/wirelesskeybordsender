@@ -239,11 +239,17 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun enableSendingMode(enabled: Boolean) {
-        btnConnect.visibility = if (enabled) View.GONE else View.VISIBLE
-        btnSend.visibility = if (enabled) View.VISIBLE else View.GONE
-        btnDisconnect.visibility = if (enabled) View.VISIBLE else View.GONE
-        etInput.isEnabled = enabled
-        
+    
+    btnConnect.visibility = if (enabled) View.GONE else View.VISIBLE
+    btnSend.visibility = if (enabled) View.VISIBLE else View.GONE
+    btnDisconnect.visibility = if (enabled) View.VISIBLE else View.GONE
+    
+    
+    btnConnect.isEnabled = enabled
+    btnSend.isEnabled = enabled
+    btnDisconnect.isEnabled = enabled
+    etInput.isEnabled = enabled
+    
         if (enabled) {
             etInput.requestFocus()
             val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
