@@ -1,0 +1,30 @@
+app/
+└── src/
+    └── main/
+        ├── java/com/example/wirelesskeyboardsender/
+        │   ├── MainActivity.kt
+        │   ├── NetworkManager.kt
+        │   └── EncryptionUtil.kt
+        ├── res/
+        │   ├── layout/
+        │   │   ├── activity_main.xml      ← Main screen
+        │   │   └── dialog_password.xml    ← Password dialog (this file!)
+        │   └── values/
+        │       └── colors.xml             ← Color definitions
+        └── AndroidManifest.xml           ← App manifest
+
+WirelessKeyboardSender/
+├── app/
+│   ├── src/main/
+│   │   ├── java/com/example/wirelesskeyboardsender/
+│   │   │   ├── MainActivity.kt
+│   │   │   ├── NetworkManager.kt
+│   │   │   └── EncryptionUtil.kt
+│   │   ├── res/
+│   │   │   ├── layout/
+│   │   │   │   └── activity_main.xml
+│   │   │   └── values/
+│   │   │       └── colors.xml
+│   │   └── AndroidManifest.xml
+│   └── build.gradle.kts
+└── build.gradle.kts
