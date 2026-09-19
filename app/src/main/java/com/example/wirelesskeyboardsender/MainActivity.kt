@@ -5,6 +5,7 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -58,23 +59,23 @@ class MainActivity : AppCompatActivity() {
             showPasswordDialog()
         }
         
-        // Send button - sends text WITHOUT clearing
+        // Send button
         btnSend.setOnClickListener {
             sendText()
         }
         
-        // Disconnect button - moved to top
+        // Disconnect button
         btnDisconnect.setOnClickListener {
             disconnect()
         }
         
-        // Clear button - new
+        // Clear button
         btnClear.setOnClickListener {
             etInput.text.clear()
             showToast("Text cleared")
         }
         
-        // Special key buttons - insert markers
+        // Special key buttons
         btnBackspace.setOnClickListener {
             val currentText = etInput.text.toString()
             etInput.setText(currentText + "<<BACKSPACE>>")
@@ -247,11 +248,11 @@ class MainActivity : AppCompatActivity() {
             if (success) {
                 showToast("✓ Text sent")
                 updateStatus("Connected", "#4CAF50")
-                // DO NOT clear text box - user can edit and resend
+                // DO NOT clear text box
             } else {
                 Toast.makeText(this@MainActivity, "Send failed! Connection lost.", Toast.LENGTH_LONG).show()
                 updateStatus("Connection Lost", "#FF5722")
-                enableSendingMode(false)  // Allow reconnect
+                enableSendingMode(false)
             }
         }
     }
@@ -266,7 +267,6 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun enableSendingMode(enabled: Boolean) {
-        // Show/hide appropriate buttons
         btnConnect.visibility = if (enabled) View.GONE else View.VISIBLE
         btnClear.visibility = if (enabled) View.VISIBLE else View.GONE
         btnDisconnect.visibility = if (enabled) View.VISIBLE else View.GONE
@@ -303,10 +303,9 @@ class MainActivity : AppCompatActivity() {
         networkManager.disconnect()
     }
     
-    // FIX: Don't disconnect when screen goes off!
     override fun onPause() {
         super.onPause()
-        // Keep connection alive when app backgrounds or screen locks
-        // Commented out: networkManager.disconnect()
+        // Keep connection alive - don't disconnect on screen lock
+        //networkManager.disconnect()
     }
 }
