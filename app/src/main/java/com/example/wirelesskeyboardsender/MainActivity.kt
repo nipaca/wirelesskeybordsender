@@ -1,9 +1,12 @@
 package com.example.wirelesskeyboardsender
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.view.View
@@ -14,6 +17,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 
@@ -57,12 +62,29 @@ class MainActivity : AppCompatActivity() {
 
         initViews()
         setupListeners()
+        requestNotificationPermission()
 
-        val serviceIntent = Intent(this, KeyboardService::class.java)
-        startService(serviceIntent)
-        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
+        startAndBindService()
 
         etInput.requestFocus()
+    }
+
+    private fun startAndBindService() {
+        try {
+            val serviceIntent = Intent(this, KeyboardService::class.java)
+            ContextCompat.startForegroundService(this, serviceIntent)
+            bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
     }
 
     private fun initViews() {
@@ -167,7 +189,6 @@ class MainActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                // Save settings in EncryptedSharedPreferences
                 settingsManager.password = password
                 settingsManager.tcpPort = tcpPort
                 settingsManager.udpPort = udpPort
