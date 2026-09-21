@@ -14,8 +14,8 @@ class NetworkManager(private val context: Context) {
     
     companion object {
         // CHANGE PORT HERE to match receiver.py
-        const val PORT = 55566
-        const val DISCOVERY_PORT = 55567
+        const val PORT = 8566
+        const val DISCOVERY_PORT = 8567
         const val DISCOVERY_TIMEOUT_MS = 3000L
     }
     
