@@ -13,7 +13,6 @@ import javax.crypto.spec.SecretKeySpec
 class NetworkManager(private val context: Context) {
     
     companion object {
-        // CHANGE PORT HERE to match receiver.py
         const val PORT = 8566
         const val DISCOVERY_PORT = 8567
         const val DISCOVERY_TIMEOUT_MS = 3000L
@@ -44,7 +43,7 @@ class NetworkManager(private val context: Context) {
         }
     }
     
-    suspend fun discoverReceiver(): String? = withContext(Dispatchers.IO) {
+    suspend fun discoverReceiver(discoveryPort: Int = DISCOVERY_PORT): String? = withContext(Dispatchers.IO) {
         var receiverIp: String? = null
         
         try {
@@ -54,13 +53,12 @@ class NetworkManager(private val context: Context) {
             socket.soTimeout = DISCOVERY_TIMEOUT_MS.toInt()
             
             val requestMsg = "KEYBOARD_SENDER_SEARCH".toByteArray()
-            val packet = DatagramPacket(requestMsg, requestMsg.size, broadcastAddr, DISCOVERY_PORT)
+            val packet = DatagramPacket(requestMsg, requestMsg.size, broadcastAddr, discoveryPort)
             socket.send(packet)
             
             val buffer = ByteArray(1024)
             val responsePacket = DatagramPacket(buffer, buffer.size)
             
-            // Wait for response
             while (receiverIp == null) {
                 try {
                     socket.receive(responsePacket)
@@ -72,7 +70,6 @@ class NetworkManager(private val context: Context) {
                         break
                     }
                 } catch (e: Exception) {
-                    // Timeout - break after timeout exceeded
                     break
                 }
             }
@@ -86,21 +83,19 @@ class NetworkManager(private val context: Context) {
         receiverIp
     }
     
-    suspend fun connect(receiverIp: String, password: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun connect(receiverIp: String, password: String, port: Int = PORT): Boolean = withContext(Dispatchers.IO) {
         try {
             sessionKey = EncryptionUtil.deriveKey(password)
             
-            connectedSocket = Socket(receiverIp, PORT).apply {
+            connectedSocket = Socket(receiverIp, port).apply {
                 tcpNoDelay = true
                 soTimeout = 10000
             }
             
-            // Send auth message
             val authMsg = EncryptionUtil.encrypt("AUTH:$password", sessionKey)
             connectedSocket?.getOutputStream()?.write(authMsg.toByteArray())
             connectedSocket?.getOutputStream()?.flush()
             
-            // Wait for response
             val inputStream = connectedSocket?.getInputStream()
             val responseBytes = ByteArray(1024)
             val bytesRead = inputStream?.read(responseBytes, 0, 1024) ?: 0
@@ -145,7 +140,7 @@ class NetworkManager(private val context: Context) {
                     connectedSocket?.getOutputStream()?.flush()
                 }
             } catch (e: Exception) {
-                // Ignore, socket might be dead
+                // Ignore
             }
             
             isConnected = false
