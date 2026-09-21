@@ -39,4 +39,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
+    // Security library for EncryptedSharedPreferences (Hardware AES-256 GCM)
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 }
