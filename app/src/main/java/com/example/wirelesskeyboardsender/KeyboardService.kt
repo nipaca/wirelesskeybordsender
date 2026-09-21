@@ -12,7 +12,6 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
-import kotlinx.coroutines.*
 
 class KeyboardService : Service() {
 
@@ -22,9 +21,6 @@ class KeyboardService : Service() {
 
     private var wifiLock: WifiManager.WifiLock? = null
     private var wakeLock: PowerManager.WakeLock? = null
-
-    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private var heartbeatJob: Job? = null
 
     inner class LocalBinder : Binder() {
         fun getService(): KeyboardService = this@KeyboardService
@@ -72,14 +68,12 @@ class KeyboardService : Service() {
         try {
             if (wifiLock?.isHeld == false) wifiLock?.acquire()
             if (wakeLock?.isHeld == false) wakeLock?.acquire(10 * 60 * 1000L)
-            startHeartbeat()
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     fun stopBackgroundLocks() {
-        heartbeatJob?.cancel()
         try {
             if (wifiLock?.isHeld == true) wifiLock?.release()
             if (wakeLock?.isHeld == true) wakeLock?.release()
@@ -88,24 +82,9 @@ class KeyboardService : Service() {
         }
     }
 
-    private fun startHeartbeat() {
-        heartbeatJob?.cancel()
-        heartbeatJob = serviceScope.launch {
-            while (isActive) {
-                delay(15000)
-                if (networkManager.getConnectionStatus()) {
-                    networkManager.send("PING")
-                } else {
-                    break
-                }
-            }
-        }
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         stopBackgroundLocks()
-        serviceScope.cancel()
         networkManager.disconnect()
     }
 
