@@ -14,7 +14,7 @@ class SecureSettingsManager(context: Context) {
         context,
         "secure_keyboard_prefs",
         masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SKEY_KEY_GEN,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
